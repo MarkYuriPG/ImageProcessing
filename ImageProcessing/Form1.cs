@@ -7,6 +7,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using WebCamLib;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.TrayNotify;
 
 namespace ImageProcessing
 {
@@ -15,11 +17,10 @@ namespace ImageProcessing
         Bitmap loadedImage, processedImage;
         Color pixel;
 
-        public Form1()
-        {
+        public Form1() { 
             InitializeComponent();
-            this.Height = 489;
-            this.Width = 830;
+            this.Height = 400;
+            this.Width = 850;      
         }
 
         private void openFileDialog1_FileOk(object sender, CancelEventArgs e)
@@ -28,6 +29,11 @@ namespace ImageProcessing
             pictureBox1.Image = loadedImage;
         }
 
+        /// <summary>
+        /// Basic copy image processing
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void copyToolStripMenuItem_Click(object sender, EventArgs e)
         {
             processedImage = new Bitmap(loadedImage.Width, loadedImage.Height);
@@ -44,6 +50,11 @@ namespace ImageProcessing
             pictureBox2.Image = processedImage;
         }
 
+        /// <summary>
+        /// Grayscale image processing
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void greyscaleToolStripMenuItem_Click(object sender, EventArgs e)
         {
             processedImage = new Bitmap(loadedImage.Width, loadedImage.Height);
@@ -61,6 +72,11 @@ namespace ImageProcessing
             pictureBox2.Image = processedImage;
         }
 
+        /// <summary>
+        /// Invert image processing
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void negativeToolStripMenuItem_Click(object sender, EventArgs e)
         {
             processedImage = new Bitmap(loadedImage.Width, loadedImage.Height);
@@ -77,6 +93,11 @@ namespace ImageProcessing
             pictureBox2.Image = processedImage;
         }
 
+        /// <summary>
+        /// Display image histogram
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void histogramToolStripMenuItem_Click(object sender, EventArgs e)
         {
             processedImage = new Bitmap(loadedImage.Width, loadedImage.Height);
@@ -125,6 +146,11 @@ namespace ImageProcessing
             pictureBox2.Image = histogram;
         }
 
+        /// <summary>
+        /// Sepia image processing
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void sepiaToolStripMenuItem_Click(object sender, EventArgs e)
         {
             processedImage = new Bitmap(loadedImage.Width, loadedImage.Height);
@@ -218,6 +244,248 @@ namespace ImageProcessing
             openFileDialog1.ShowDialog();
         }
 
+        //DIP ACTIVITY 2 STARTS HERE
+        Bitmap imageA, imageB, colorGreen, resultImage;
+
+        private void openFileDialog3_FileOk(object sender, CancelEventArgs e)
+        {
+            imageB = new Bitmap(openFileDialog3.FileName);
+            pictureBox2.Image = imageB;
+        }
+        private void openFileDialog2_FileOk(object sender, CancelEventArgs e)
+        {
+            imageA = new Bitmap(openFileDialog2.FileName);
+            pictureBox1.Image = imageA;
+        }
+
+        private void button2_Click(object sender, EventArgs e)
+        {
+            openFileDialog3.ShowDialog();
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            openFileDialog2.ShowDialog();
+        }
+
+        /// <summary>
+        /// Subtraction image processing
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void button3_Click(object sender, EventArgs e)
+        {
+            resultImage = new Bitmap(imageA.Width, imageA.Height);
+            Color myGreen = Color.FromArgb(0, 255, 0);
+            int greyGreen = (myGreen.R + myGreen.G + myGreen.B) / 3;
+            int treshold = 5;
+
+            for(int x = 0; x < imageA.Width; x++)
+            {
+                for (int y=0; y<imageA.Height; y++)
+                {
+                    Color pixel = imageA.GetPixel(x, y);
+                    Color backPixel = imageB.GetPixel(x, y);
+                    int grey = (pixel.R + pixel.G + pixel.B)/3;
+                    int subractionValue = Math.Abs(grey - greyGreen);
+
+                    if(subractionValue > treshold)
+                    {
+                        resultImage.SetPixel(x, y, pixel);
+                    }
+                    else
+                    {
+                        resultImage.SetPixel(x, y, backPixel);
+                    }
+                }
+            }
+
+            pictureBox3.Image = resultImage;
+        }
+
+        //WEBCAM
+        Device[] devices = DeviceManager.GetAllDevices();
+        Device webcam = DeviceManager.GetDevice(0);
+
+        private void onToolStripMenuItem1_Click(object sender, EventArgs e)
+        {
+            webcam.ShowWindow(pictureBox1);
+            button1.Enabled = false;
+            button3.Enabled = false;
+        }
+
+        private void offToolStripMenuItem1_Click(object sender, EventArgs e)
+        {
+            webcam.Stop();
+            button1.Enabled = true;
+            button3.Enabled = true;
+        }
+
+        /// <summary>
+        /// INVERT FOR WEBCAM
+        /// </summary>
+        bool isInvert = false;
+        private void invertToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+
+            isInvert = !isInvert;
+
+            timer3.Enabled = false;
+            timer2.Enabled = false;
+
+            timer1.Enabled = isInvert;
+
+            button2.Enabled = false;
+        }
+
+        private void timer1_Tick(object sender, EventArgs e)
+        {
+            IDataObject data;
+            Image bmap;
+            devices[0].Sendmessage();
+            data = Clipboard.GetDataObject();
+
+            if (data != null)
+            {
+                bmap = (Image)(data.GetData("System.Drawing.Bitmap", true));
+
+                // Check if the retrieved data is a valid image
+                if (bmap != null)
+                {
+                    Bitmap b = new Bitmap(bmap);
+
+                    ImageProcess2.BitmapFilter.Invert(b);
+
+                    // Update PictureBox with the processed image
+                    pictureBox3.Image = b;
+                }
+                else
+                {
+                    // Handle case where clipboard data is not a valid image
+                    Console.WriteLine("Clipboard data is not a valid image.");
+                }
+            }
+            else
+            {
+                // Handle case where clipboard data is not available
+                Console.WriteLine("Clipboard data is not available.");
+            }
+        }
+
+        /// <summary>
+        /// GREYCALE FOR WEBCAM
+        /// </summary>
+        bool isGrey = false;
+        private void grayscaleToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            isGrey = !isGrey;
+
+            timer1.Enabled = false;
+            timer3.Enabled = false;
+
+            timer2.Enabled = isGrey;
+
+            button2.Enabled = false;
+        }
+
+        private void timer2_Tick(object sender, EventArgs e)
+        {
+            IDataObject data;
+            Image bmap;
+            devices[0].Sendmessage();
+            data = Clipboard.GetDataObject();
+
+            if (data != null)
+            {
+                bmap = (Image)(data.GetData("System.Drawing.Bitmap", true));
+
+                // Check if the retrieved data is a valid image
+                if (bmap != null)
+                {
+                    Bitmap b = new Bitmap(bmap);
+
+                    ImageProcess2.BitmapFilter.GrayScale(b);
+
+                    // Update PictureBox with the processed image
+                    pictureBox3.Image = b;
+                }
+                else
+                {
+                    // Handle case where clipboard data is not a valid image
+                    Console.WriteLine("Clipboard data is not a valid image.");
+                }
+            }
+            else
+            {
+                // Handle case where clipboard data is not available
+                Console.WriteLine("Clipboard data is not available.");
+            }
+        }
+
+        /// <summary>
+        /// SUBTRACTION FOR WEBCAM (GREEN SCREEN)
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        bool isSubtract = false;
+        private void button4_Click(object sender, EventArgs e)
+        {
+            isSubtract = !isSubtract;
+
+            IDataObject data;
+            Image bmap;
+            devices[0].Sendmessage();
+            data = Clipboard.GetDataObject();
+            bmap = (Image)(data.GetData("System.Drawing.Bitmap", true));
+            
+            if(imageB!=null &&bmap.Size == imageB.Size)
+            {
+                timer1.Enabled = false;
+                timer2.Enabled = false;
+
+                timer3.Enabled = isSubtract;
+            }
+            else
+            {
+                Console.WriteLine("Background is null or not the same resolution as webcam");
+            }
+        }
+
+
+        private void timer3_Tick(object sender, EventArgs e)
+        {
+            IDataObject data;
+            Image bmap;
+            devices[0].Sendmessage();
+            data = Clipboard.GetDataObject();
+
+            int threshold = 100;
+
+            if (data != null)
+            {
+                bmap = (Image)(data.GetData("System.Drawing.Bitmap", true));
+
+                // Check if the retrieved data is a valid image
+                if (bmap != null)
+                {
+                    Bitmap b = new Bitmap(bmap);
+
+                    ImageProcess2.BitmapFilter.Subtract(b, imageB, Color.Green, threshold);
+
+                    pictureBox3.Image = b;
+                }
+                else
+                {
+                    // Handle case where clipboard data is not a valid image
+                    Console.WriteLine("Clipboard data is not a valid image.");
+                }
+            }
+            else
+            {
+                // Handle case where clipboard data is not available
+                Console.WriteLine("Clipboard data is not available.");
+            }
+        }
 
     }
 }
